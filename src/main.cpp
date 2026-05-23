@@ -24,31 +24,17 @@ double exact_solution(const double& x, const double& y) {
 }
 
 
-double convergence_criterion(const std::vector<double>& sol1, const std::vector<double>& sol2, const double& h) {
-    double sum = 0;
-
-    std::size_t nNodes = sol1.size();
-    std::vector<double> diff(nNodes, 0);
-
-    for(int k=0; k<nNodes; ++k) {
-        diff[k] = sol2[k] - sol1[k];
-        sum += diff[k] * diff[k];
-    }
-
-    return h*std::sqrt(sum);
-}
-
-double l2_norm(const std::vector<double>& u, const std::vector<double>& uh, const double& h) {
+double l2_norm(const std::vector<double>& u, const std::vector<double>& v, const double& w) {
     double sum = 0;
 
     std::size_t nNodes = u.size();
     std::vector<double> diff(nNodes, 0);
 
     for(int k=0; k<nNodes; ++k) {
-        diff[k] = u[k] - uh[k];
+        diff[k] = u[k] - v[k];
         sum += diff[k] * diff[k];
     }
-    return h*std::sqrt(sum);
+    return w*std::sqrt(sum);
 }
 
 
@@ -94,8 +80,8 @@ int main() {
                 u_new[k] = 0.25 * (u[k-n] + u[k+n] + u[k-1] + u[k+1] + h*h * source[k]);
             }
         }
-        error = convergence_criterion(u, u_new, h);
-        l2  = l2_norm(u_exact, u_new, h);
+        error = l2_norm(u, u_new, h);
+        l2    = l2_norm(u_exact, u_new, h);
 
         u = u_new;
         p++;
