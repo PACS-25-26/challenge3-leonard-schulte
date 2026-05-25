@@ -4,9 +4,12 @@
 #include <numbers>
 #include <fstream>
 #include <string>
-#include <filesystem>
 #include <vector>
 #include <chrono>
+#include <fstream>
+#include <sstream>
+#include <string>
+#include <unordered_map>
 
 
 double source_term(const double& x, const double& y) {
@@ -33,7 +36,7 @@ double l2_norm(const std::vector<double>& u, const std::vector<double>& v, const
     std::size_t nNodes = u.size();
     std::vector<double> diff(nNodes, 0);
 
-    for(int k=0; k<nNodes; ++k) {
+    for(size_t k=0; k<nNodes; ++k) {
         diff[k] = u[k] - v[k];
         sum += diff[k] * diff[k];
     }
@@ -42,10 +45,7 @@ double l2_norm(const std::vector<double>& u, const std::vector<double>& v, const
 
 
 void vtk_output(const int& n, const double& h, const std::vector<double>& solution, const double& x0, const double& y0, const std::string& filename) {
-    // ensure output directory exists
-    std::filesystem::create_directories("output");
-
-    const std::string path = std::string("output/") + filename + ".vtk";
+    const std::string path = filename + ".vtk";
     std::ofstream output(path);
 
     if (!output) {
@@ -76,25 +76,85 @@ void vtk_output(const int& n, const double& h, const std::vector<double>& soluti
 }
 
 
-int main() {
+static std::string trim(std::string s) {
+    const auto first = s.find_first_not_of(" \t\r\n");
+    const auto last = s.find_last_not_of(" \t\r\n");
+    if (first == std::string::npos) return "";
+    
+    return s.substr(first, last - first + 1);
+}
+
+
+int main(int argc, char* argv[]) {
+    if (argc < 2) {
+        std::cerr << "Usage: " << argv[0] << " <input-parameter-file>\n";
+        return 1;
+    }
+
+    std::ifstream input(argv[1]);
+    if (!input) {
+        std::cerr << "Could not open parameter file: " << argv[1] << '\n';
+        return 1;
+    }
+
+    std::string case_name;
+    int N = 60;
+    int maxIter = 100000;
+    double tol = 1e-6;
+    double x_min = 0.0, x_max = 1.0, y_min = 0.0, y_max = 1.0;
+
+    std::string line;
+    while (std::getline(input, line)) {
+        line = trim(line);
+        if (line.empty() || line[0] == '#') continue;
+
+        const auto pos = line.find('=');
+        if (pos == std::string::npos) continue;
+
+        auto comment_pos = line.find('#');
+        if (comment_pos != std::string::npos) {
+            line = line.substr(0, comment_pos);
+        }
+        line = trim(line);
+        if (line.empty()) continue;
+
+        std::string key = trim(line.substr(0, pos));
+        std::string value = trim(line.substr(pos + 1));
+
+        if (key == "NAME") {
+            case_name = value;
+        } else if (key == "N") {
+            N = std::stoi(value);
+        } else if (key == "MAXITER") {
+            maxIter = std::stoi(value);
+        } else if (key == "TOL") {
+            tol = std::stod(value);
+        } else if (key == "DOMAIN") {
+            std::stringstream ss(value);
+            char comma;
+            ss >> x_min >> comma >> x_max >> comma >> y_min >> comma >> y_max;
+        }
+    }
+
+    std::cout << "Case Name: " << case_name << '\n';
+    std::cout << "N = " << N << "\n";
+    std::cout << "maxIter = " << maxIter << '\n';
+    std::cout << "tol = " << tol << '\n';
+    std::cout << "domain = " << x_min << ", " << x_max << ", " << y_min << ", " << y_max << '\n';
+
     // Spatial discretization
-    const int n = 60;                   // Mesh size
-    const double x_min = 0, x_max = 1;  // Domain in x-direction
-    const double y_min = 0, y_max = 1;  // Domain in y-direction
-    const double h = 1.0 / (n - 1);     // Step size (uniform)
+    const double h = 1.0 / (N - 1);  // Step size (uniform)
 
-    int k = 0;  // Nodes (linear)
-    int p = 0;  // Iteration
+    int k = 0;  // Nodes (linear) index
+    int p = 0;  // Iteration index
 
-    const int maxIter = 100000;  // Maximum iteration
-    const double tol = 1e-6;     // Convergence criterion
     double error = 1;            // Error
     double l2 = 1;               // L2-Norm
 
-    std::vector<double> source(n * n, 0.0);  // f(x,y)
-    std::vector<double> u(n*n, 0.0);         // u(x,y) stored linear with n*n Nodes
-    std::vector<double> u_new(n*n, 0.0);     // Current iteration solution (temporary)
-    std::vector<double> u_exact(n*n, 0.0);   // Exact solution
+    std::vector<double> source(N * N, 0.0);  // f(x,y)
+    std::vector<double> u(N*N, 0.0);         // u(x,y) stored linear with n*n Nodes
+    std::vector<double> u_new(N*N, 0.0);     // Current iteration solution (temporary)
+    std::vector<double> u_exact(N*N, 0.0);   // Exact solution
 
     // Boundaryy conditions are zero: u(x=0) = 0, u(x=1) = 0, etc. -> fullfilled by initialization
 
@@ -104,18 +164,18 @@ int main() {
 
     while (error > tol && p < maxIter)
     {
-        for (int i = 1; i < n-1; ++i) {
+        for (int i = 1; i < N-1; ++i) {
             double x = x_min + i * h;
 
-            for (int j = 1; j < n-1; ++j) {
+            for (int j = 1; j < N-1; ++j) {
                 double y = y_min + j * h;
 
-                k = n*i + j;
+                k = N*i + j;
                 source[k] = source_term(x, y);
                 u_exact[k] = exact_solution(x, y);
 
                 //u_new[k] = 1/(4*h*h) * (u[k-n] + u[k+n] + u[k-1] + u[k+1] + source[k]);
-                u_new[k] = 0.25 * (u[k-n] + u[k+n] + u[k-1] + u[k+1] + h*h * source[k]);
+                u_new[k] = 0.25 * (u[k-N] + u[k+N] + u[k-1] + u[k+1] + h*h * source[k]);
             }
         }
         error = l2_norm(u, u_new, h);
@@ -133,7 +193,7 @@ int main() {
 
     std::cout << "\nConvergence Criterion met! " << "\n--------------------\n";
     std::cout << "         Step size : " << h << '\n';
-    std::cout << "    Number of Nodes: " << n*n << '\n';
+    std::cout << "    Number of Nodes: " << N*N << '\n';
     std::cout << "        Iterations : " << p << '\n';
     std::cout << "Stopping condition : " << error << '\n';
     std::cout << "           L2 Norm : " << l2 << '\n';
@@ -143,16 +203,16 @@ int main() {
     std::cout << "Finished Computation at: "
               << std::chrono::current_zone()->to_local(tp_utc) << '\n';
     std::cout << "           Elapsed Time: " << elapsed_seconds << '\n'; // C++20's chrono::duration operator<<
-    
+
+    vtk_output(N, h, u, x_min, y_min, case_name);
+    vtk_output(N, h, u_exact, x_min, y_min, "analytical_solution");
+
     // Open a persistent pipe to Gnuplot
     FILE* gnuplot1 = popen("gnuplot -persistent", "w");
     if (!gnuplot1) {
         std::cerr << "Error: Could not open pipe to Gnuplot." << std::endl;
         return 1;
     }
-
-    vtk_output(n, h, u, x_min, y_min, "numerical_solution");
-    vtk_output(n, h, u_exact, x_min, y_min, "exact_solution");
 
     // Set up visual properties
     fprintf(gnuplot1, "set title 'Numerical Solution u_h(x,y)'\n");
@@ -167,11 +227,11 @@ int main() {
 
 
     // Evaluate source term and stream the coordinates
-    for (int i = 0; i < n; ++i) {
+    for (int i = 0; i < N; ++i) {
         double x = x_min + i * h;
         
-        for (int j = 0; j < n; ++j) {
-            k = n*i + j;
+        for (int j = 0; j < N; ++j) {
+            k = N*i + j;
             double y = y_min + j * h;
             
             fprintf(gnuplot1, "%f %f %f\n", x, y, u[k]);
@@ -208,11 +268,11 @@ int main() {
 
 
     // Evaluate source term and stream the coordinates
-    for (int i = 0; i < n; ++i) {
+    for (int i = 0; i < N; ++i) {
         double x = x_min + i * h;
         
-        for (int j = 0; j < n; ++j) {
-            k = n*i + j;
+        for (int j = 0; j < N; ++j) {
+            k = N*i + j;
             double y = y_min + j * h;
             
             fprintf(gnuplot2, "%f %f %f\n", x, y, u_exact[k]);
