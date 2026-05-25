@@ -70,3 +70,7 @@ Testing/
 
 # .vtk output
 *.vtk
+
+# Doxygen output
+/docs/html/
+/docs/latex/
