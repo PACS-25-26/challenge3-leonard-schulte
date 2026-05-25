@@ -1,3 +1,8 @@
+/**
+ * @file main.cpp
+ * @brief Solver for the 2D Laplace problem with VTK output.
+ */
+
 #include <iostream>
 #include <cstdio>
 #include <cmath>
@@ -12,6 +17,13 @@
 #include <unordered_map>
 
 
+/**
+ * @brief Compute the source term f(x,y).
+ *
+ * @param x x-coordinate in the domain.
+ * @param y y-coordinate in the domain.
+ * @return Value of f(x,y).
+ */
 double source_term(const double& x, const double& y) {
     double f;
 
@@ -21,6 +33,13 @@ double source_term(const double& x, const double& y) {
 }
 
 
+/**
+ * @brief Compute the analytical solution u(x,y).
+ *
+ * @param x x-coordinate in the domain.
+ * @param y y-coordinate in the domain.
+ * @return Value of the exact solution u(x,y).
+ */
 double exact_solution(const double& x, const double& y) {
     double sol;
 
@@ -30,6 +49,14 @@ double exact_solution(const double& x, const double& y) {
 }
 
 
+/**
+ * @brief Compute the weighted L2 norm of the difference between two vectors.
+ *
+ * @param u First vector.
+ * @param v Second vector.
+ * @param w Weighting factor used in the norm.
+ * @return Weighted L2 norm of u - v.
+ */
 double l2_norm(const std::vector<double>& u, const std::vector<double>& v, const double& w) {
     double sum = 0;
 
@@ -44,6 +71,16 @@ double l2_norm(const std::vector<double>& u, const std::vector<double>& v, const
 }
 
 
+/**
+ * @brief Write a scalar field to a legacy ASCII VTK file.
+ *
+ * @param n Number of grid points in each coordinate direction.
+ * @param h Uniform grid spacing.
+ * @param solution Scalar solution values in linear storage.
+ * @param x0 x-coordinate of the domain origin.
+ * @param y0 y-coordinate of the domain origin.
+ * @param filename Output file name without extension.
+ */
 void vtk_output(const int& n, const double& h, const std::vector<double>& solution, const double& x0, const double& y0, const std::string& filename) {
     const std::string path = filename + ".vtk";
     std::ofstream output(path);
@@ -73,9 +110,17 @@ void vtk_output(const int& n, const double& h, const std::vector<double>& soluti
     }
 
     output.close();
+
+    std::cout << "Sucessfully wrote to " << path << '\n';
 }
 
 
+/**
+ * @brief Remove leading and trailing whitespace from a string.
+ *
+ * @param s Input string.
+ * @return Trimmed string.
+ */
 static std::string trim(std::string s) {
     const auto first = s.find_first_not_of(" \t\r\n");
     const auto last = s.find_last_not_of(" \t\r\n");
@@ -85,6 +130,16 @@ static std::string trim(std::string s) {
 }
 
 
+/**
+ * @brief Program entry point.
+ *
+ * Reads the parameter file, solves the discrete Laplace problem, and writes
+ * the numerical and analytical solutions to VTK files.
+ *
+ * @param argc Number of command-line arguments.
+ * @param argv Command-line argument values.
+ * @return Zero on success, nonzero on failure.
+ */
 int main(int argc, char* argv[]) {
     if (argc < 2) {
         std::cerr << "Usage: " << argv[0] << " <input-parameter-file>\n";
