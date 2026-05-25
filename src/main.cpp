@@ -2,6 +2,9 @@
 #include <cstdio>
 #include <cmath>
 #include <numbers>
+#include <fstream>
+#include <string>
+#include <filesystem>
 #include <vector>
 #include <chrono>
 
@@ -35,6 +38,41 @@ double l2_norm(const std::vector<double>& u, const std::vector<double>& v, const
         sum += diff[k] * diff[k];
     }
     return w*std::sqrt(sum);
+}
+
+
+void vtk_output(const int& n, const double& h, const std::vector<double>& solution, const double& x0, const double& y0, const std::string& filename) {
+    // ensure output directory exists
+    std::filesystem::create_directories("output");
+
+    const std::string path = std::string("output/") + filename + ".vtk";
+    std::ofstream output(path);
+
+    if (!output) {
+        std::cerr << "Unable to open " << path << " for writing\n";
+        return;
+    }
+
+    output << "# vtk DataFile Version 3.0\n";
+    output << "Laplace equation solver results\n";
+    output << "ASCII\n";
+    output << "DATASET STRUCTURED_POINTS\n";
+    output << "DIMENSIONS " << n << ' ' << n << ' ' << 1 << '\n';
+    output << "ORIGIN " << x0 << ' ' << y0 << ' ' << 0 << '\n';
+    output << "SPACING " << h << ' ' << h << ' ' << 1 << '\n';
+    output << "POINT_DATA " << (n * n) << '\n';
+    output << "SCALARS u double 1\n";
+    output << "LOOKUP_TABLE default\n";
+
+    // write values with x varying fastest (i inner, j outer)
+    for (int j = 0; j < n; ++j) {
+        for (int i = 0; i < n; ++i) {
+            const int idx = n * i + j;
+            output << solution[idx] << '\n';
+        }
+    }
+
+    output.close();
 }
 
 
@@ -112,6 +150,9 @@ int main() {
         std::cerr << "Error: Could not open pipe to Gnuplot." << std::endl;
         return 1;
     }
+
+    vtk_output(n, h, u, x_min, y_min, "numerical_solution");
+    vtk_output(n, h, u_exact, x_min, y_min, "exact_solution");
 
     // Set up visual properties
     fprintf(gnuplot1, "set title 'Numerical Solution u_h(x,y)'\n");
