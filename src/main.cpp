@@ -153,10 +153,10 @@ int main(int argc, char* argv[]) {
     }
 
     std::string case_name;
-    int N = 60;
-    int maxIter = 100000;
-    double tol = 1e-6;
-    double x_min = 0.0, x_max = 1.0, y_min = 0.0, y_max = 1.0;
+    int N       = -1;
+    int maxIter = -1;
+    double tol  =  1;
+    double x_min = 0, x_max = 0, y_min = 0, y_max = 0;
 
     std::string line;
     while (std::getline(input, line)) {
@@ -182,7 +182,7 @@ int main(int argc, char* argv[]) {
             N = std::stoi(value);
         } else if (key == "MAXITER") {
             maxIter = std::stoi(value);
-        } else if (key == "TOL") {
+        } else if (key == "TOLERANCE") {
             tol = std::stod(value);
         } else if (key == "DOMAIN") {
             std::stringstream ss(value);
@@ -191,11 +191,13 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    std::cout << "Case Name: " << case_name << '\n';
-    std::cout << "N = " << N << "\n";
-    std::cout << "maxIter = " << maxIter << '\n';
-    std::cout << "tol = " << tol << '\n';
-    std::cout << "domain = " << x_min << ", " << x_max << ", " << y_min << ", " << y_max << '\n';
+    std::cout << "\n---------- SOLVER SETTINGS ----------" << '\n';
+    std::cout << " Case Name : " << case_name << '\n';
+    std::cout << "Resolution : " << N << '\n';
+    std::cout << "  max iter : " << maxIter << '\n';
+    std::cout << " Tolerance : " << tol << '\n';
+    std::cout << "    Domain : x = [" << x_min << ", " << x_max << "]" << '\n'; 
+    std::cout << "             y = [" << y_min << ", " << y_max << "]" << '\n';
 
     // Spatial discretization
     const double h = 1.0 / (N - 1);  // Step size (uniform)
@@ -246,9 +248,9 @@ int main(int argc, char* argv[]) {
     const std::chrono::duration<double> elapsed_seconds{finish - start};
     const auto tp_utc{std::chrono::system_clock::now()};
 
-    std::cout << "\nConvergence Criterion met! " << "\n--------------------\n";
+    std::cout << "\n---------- CONVERGENCE ---------- " << '\n';
     std::cout << "         Step size : " << h << '\n';
-    std::cout << "    Number of Nodes: " << N*N << '\n';
+    std::cout << "   Number of Nodes : " << N*N << '\n';
     std::cout << "        Iterations : " << p << '\n';
     std::cout << "Stopping condition : " << error << '\n';
     std::cout << "           L2 Norm : " << l2 << '\n';
@@ -259,8 +261,10 @@ int main(int argc, char* argv[]) {
               << std::chrono::current_zone()->to_local(tp_utc) << '\n';
     std::cout << "           Elapsed Time: " << elapsed_seconds << '\n'; // C++20's chrono::duration operator<<
 
+    std::cout << '\n';
     vtk_output(N, h, u, x_min, y_min, case_name);
     vtk_output(N, h, u_exact, x_min, y_min, "analytical_solution");
+    std::cout << '\n';
 
     // Open a persistent pipe to Gnuplot
     FILE* gnuplot1 = popen("gnuplot -persistent", "w");
