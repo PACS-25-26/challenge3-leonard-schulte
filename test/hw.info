@@ -1,0 +1,28 @@
+HWiNFO64 Version 7.62-5200
+
+Central Processor(s) ------------------------------------------------------
+
+ [CPU Unit Count]
+  Number Of Processor Packages (Physical): 1
+  Number Of Processor Cores:               4
+  Number Of Logical Processors:            8
+
+Intel Core i7-8565U -------------------------------------------------------
+
+ [General Information]
+  Processor Name:                         Intel Core i7-8565U
+  Original Processor Frequency:           2000.0 MHz
+  CPU Brand Name:                         Intel(R) Core(TM) i7-8565U CPU @ 1.80GHz
+  Number of CPU Cores:                    4
+  Number of Logical CPUs:                 8
+
+ [Cache and TLB]
+  L1 Cache:                               Instruction: 4 x 32 KBytes, Data: 4 x 32 KBytes
+  L2 Cache:                               Integrated: 4 x 256 KBytes
+  L3 Cache:                               8 MBytes
+
+Memory --------------------------------------------------------------------
+
+ [General Information]
+  Total Memory Size:                      16 GBytes
+  Total Memory Size [MB]:                 16384

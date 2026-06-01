@@ -38,6 +38,7 @@
 *.exe
 *.out
 *.app
+/bin
 
 # Build directories
 build/
@@ -67,3 +68,10 @@ vcpkg_installed/
 # test output & cache
 Testing/
 .cache/
+
+# .vtk output
+*.vtk
+
+# Doxygen output
+/docs/html/
+/docs/latex/
