@@ -32,33 +32,9 @@ add_executable(main
 # Include directories
 target_include_directories(main PRIVATE
   ${CMAKE_SOURCE_DIR}/include
-  $ENV{HOME}/libraries/eigen
-  $ENV{HOME}/libraries/benchmark/include
-)
-
-# Compiled Binaries (-L flags)
-target_link_directories(main PRIVATE
-  $ENV{HOME}/libraries/benchmark/build/src
-)
-
-# -lpthread for linking threads
-find_package(Threads REQUIRED)
-
-# Link Libraries (-l flags)
-target_link_libraries(main PRIVATE
-    benchmark
-    Threads::Threads
 )
 
 # Put executable in bin/
 set_target_properties(main PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin
 )
-
-
-
-add_executable(benchmarks test/benchmark.cpp)
-target_include_directories(benchmarks PRIVATE ${CMAKE_SOURCE_DIR}/include $ENV{HOME}/libraries/benchmark/include)
-target_link_directories(benchmarks PRIVATE $ENV{HOME}/libraries/benchmark/build/src)
-target_link_libraries(benchmarks PRIVATE benchmark Threads::Threads)
-set_target_properties(benchmarks PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
